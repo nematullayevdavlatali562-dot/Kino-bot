@@ -11,24 +11,23 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     KeyboardButton,
     ReplyKeyboardMarkup,
-    ReplyKeyboardRemove,
 )
 
 from keep_alive import keep_alive
 
-# Запуск веб-сервера для поддержки 24/7 работы на Render
+# Server o'chib qolmasligi uchun
 keep_alive()
 
-# === НАСТРОЙКИ ===
+# === SOZLAMALAR ===
 BOT_TOKEN = "8957925087:AAEp1epsICBHkOAHUYNi9NauBebhIWJ1aIg"
-ADMIN_ID = 6119649341  # Укажите ваш Telegram ID (число)
-# =================
+ADMIN_ID = 6119649341  # O'zingizning Telegram ID-ingiz (raqam)
+# ==================
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
 
-# === РАБОТА С БАЗОЙ ДАННЫХ (SQLite) ===
+# === SQLITE BAZA SOZLAMALARI ===
 def init_db():
   conn = sqlite3.connect("movies.db")
   cursor = conn.cursor()
@@ -111,11 +110,7 @@ def delete_channel_db(chat_id):
   conn.close()
 
 
-# === СОСТОЯНИЯ (FSM) ===
-class SearchMovie(StatesGroup):
-  waiting_for_code = State()
-
-
+# === FSM HOLATLARI ===
 class AddMovie(StatesGroup):
   waiting_for_code = State()
   waiting_for_title = State()
@@ -135,9 +130,9 @@ class DeleteChannel(StatesGroup):
   waiting_for_id = State()
 
 
-# === НИЖНЯЯ КЛАВИАТУРА (REPLY) ===
+# === PASTKI TUGMALAR (REPLY KEYBOARD) ===
 def get_main_keyboard(is_admin: bool):
-  buttons = [[KeyboardButton(text="🎬 Kinoni kodi bo'yicha qidirish")]]
+  buttons = [[KeyboardButton(text="🎬 Kino kodi yuborish")]]
 
   if is_admin:
     buttons.append([
@@ -149,7 +144,7 @@ def get_main_keyboard(is_admin: bool):
   return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
 
-# === ПРОВЕРКА ПОДПИСКИ ===
+# === A'ZOLIKNI TEKSHIRISH ===
 async def check_sub_channels(user_id: int):
   unsubscribed = []
   channels = get_channels_db()
@@ -182,7 +177,7 @@ def get_sub_keyboard(unsubscribed_channels, code: str = ""):
   return InlineKeyboardMarkup(inline_keyboard=kb)
 
 
-# === ОБРАБОТЧИКИ КОМАНД И КНОПОК ===
+# === BUYRUQLAR VA ASOSIY TUGMALAR ===
 
 
 @dp.message(Command("start"))
@@ -199,8 +194,7 @@ async def start_handler(message: types.Message, state: FSMContext):
   else:
     await message.answer(
         f"Assalomu alaykum, **{message.from_user.full_name}**!\n\n"
-        "🎬 **KinoSearch** botiga xush kelibsiz.\n"
-        "Kino kodini yuboring yoki pastdagi tugmalardan foydalaning:",
+        "🎬 Kino qidirish uchun kodini yuboring yoki quyidagi tugmalardan foydalaning:",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=get_main_keyboard(is_admin),
     )
@@ -223,51 +217,23 @@ async def check_subscription_callback(callback: types.CallbackQuery):
       title = get_movie_db(code)
       if title:
         await callback.message.answer(
-            f"🎬 **Kino kodi:** `{code}`\n📌 **Kino nomi:** `{title}`\n\n"
-            f"🔍 *Nomini nusxalab olib, brauzerdan qidirishingiz mumkin.*",
+            f"🎬 **Kino kodi:** `{code}`\n📌 **Kino nomi:** `{title}`",
             parse_mode=ParseMode.MARKDOWN,
         )
 
 
-# Нажатие на кнопку "Найти фильм"
-@dp.message(F.text == "🎬 Kinoni kodi bo'yicha qidirish")
-async def ask_search_code(message: types.Message, state: FSMContext):
-  await message.answer("⌨️ Kino kodini yuboring (masalan: `100`):")
-  await state.set_state(SearchMovie.waiting_for_code)
-
-
-# Обработка ввода кода фильма
-@dp.message(SearchMovie.waiting_for_code)
-async def process_search_code(message: types.Message, state: FSMContext):
-  code = message.text.strip()
-  unsub = await check_sub_channels(message.from_user.id)
-
-  if unsub:
-    await message.answer(
-        "⚠️ Kino nomini ko'rish uchun kanallarga a'zo bo'ling:",
-        reply_markup=get_sub_keyboard(unsub, code),
-    )
-    await state.clear()
-    return
-
-  title = get_movie_db(code)
-  if title:
-    await message.answer(
-        f"🎬 **Kino kodi:** `{code}`\n📌 **Kino nomi:** `{title}`\n\n"
-        f"🔍 *Nomini nusxalab olib, brauzerdan qidirishingiz mumkin.*",
-        parse_mode=ParseMode.MARKDOWN,
-    )
-  else:
-    await message.answer("❌ Ushbu kod bo'yicha hech qanday kino topilmadi.")
-
+@dp.message(F.text == "🎬 Kino kodi yuborish")
+async def ask_code_btn(message: types.Message, state: FSMContext):
   await state.clear()
+  await message.answer("⌨️ Kino kodini yuboring (masalan: `100`):")
 
 
-# === АДМИН-ПАНЕЛЬ ===
+# === ADMIN PANEL TUGMALARI ===
 
 
 @dp.message(F.text == "➕ Yangi kino qo'shish", F.from_user.id == ADMIN_ID)
 async def add_movie_start(message: types.Message, state: FSMContext):
+  await state.clear()
   await message.answer(
       "✏️ Yangi kino uchun **sonli kod** kiriting (masalan: `100`):"
   )
@@ -276,7 +242,12 @@ async def add_movie_start(message: types.Message, state: FSMContext):
 
 @dp.message(AddMovie.waiting_for_code)
 async def process_add_code(message: types.Message, state: FSMContext):
-  await state.update_data(code=message.text.strip())
+  code = message.text.strip()
+  if not code.isdigit():
+    await message.answer("⚠️ Iltimos, kodni faqat raqamlarda kiriting!")
+    return
+
+  await state.update_data(code=code)
   await message.answer("📝 Endi **kino nomi va yilini** yuboring:")
   await state.set_state(AddMovie.waiting_for_title)
 
@@ -298,6 +269,7 @@ async def process_add_title(message: types.Message, state: FSMContext):
 
 @dp.message(F.text == "🗑 Kinoni o'chirish", F.from_user.id == ADMIN_ID)
 async def del_movie_start(message: types.Message, state: FSMContext):
+  await state.clear()
   await message.answer("🗑 O'chirmoqchi bo'lgan kino kodini kiriting:")
   await state.set_state(DeleteMovie.waiting_for_code)
 
@@ -313,7 +285,8 @@ async def process_del_code(message: types.Message, state: FSMContext):
 
 
 @dp.message(F.text == "📢 Kanallarni boshqarish", F.from_user.id == ADMIN_ID)
-async def manage_channels(message: types.Message):
+async def manage_channels(message: types.Message, state: FSMContext):
+  await state.clear()
   channels = get_channels_db()
   text = f"📢 **Ulangan kanallar soni:** {len(channels)}/10\n\n"
   for idx, ch in enumerate(channels, 1):
@@ -325,6 +298,7 @@ async def manage_channels(message: types.Message):
 
 @dp.message(Command("add_channel"), F.from_user.id == ADMIN_ID)
 async def add_ch_start(message: types.Message, state: FSMContext):
+  await state.clear()
   if len(get_channels_db()) >= 10:
     await message.answer("❌ Maksimal 10 ta kanal ulay olasiz!")
     return
@@ -356,6 +330,7 @@ async def add_ch_name(message: types.Message, state: FSMContext):
 
 @dp.message(Command("del_channel"), F.from_user.id == ADMIN_ID)
 async def del_ch_start(message: types.Message, state: FSMContext):
+  await state.clear()
   await message.answer("O'chirmoqchi bo'lgan kanal Chat ID sini kiriting:")
   await state.set_state(DeleteChannel.waiting_for_id)
 
@@ -367,14 +342,13 @@ async def del_ch_process(message: types.Message, state: FSMContext):
   await state.clear()
 
 
-# Прямой ввод кода пользователем без нажатия кнопки
+# === FOYDALANUVCHIDAN RAQAMLI KOD QABUL QILISH ===
 @dp.message(F.text)
-async def direct_code_search(message: types.Message, state: FSMContext):
+async def handle_user_code(message: types.Message, state: FSMContext):
   code = message.text.strip()
 
-  # Игнорируем обычные сообщения, если они не являются цифрами
+  # Agar kiritilgan matn faqat raqamlardan iborat bo'lmasa, uni kino kodi deb hisoblamaydi
   if not code.isdigit():
-    await message.answer("⚠️ Iltimos, kino kodini faqat raqamlar bilan yuboring.")
     return
 
   unsub = await check_sub_channels(message.from_user.id)
