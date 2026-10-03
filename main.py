@@ -13,8 +13,8 @@ from keep_alive import keep_alive
 keep_alive()
 
 # === SOZLAMALAR ===
-BOT_TOKEN = "BOT_TOKENINGIZNI_SHUYERGA_YOZING"
-ADMIN_ID = 123456789  # O'zingizning Telegram ID-ingiz
+BOT_TOKEN = "8957925087:AAEp1epsICBHkOAHUYNi9NauBebhIWJ1aIg"
+ADMIN_ID = 6119649341  # O'zingizning Telegram ID-ingiz
 # ==================
 
 bot = Bot(token=BOT_TOKEN)
