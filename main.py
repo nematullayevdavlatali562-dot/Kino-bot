@@ -24,7 +24,7 @@ keep_alive()
 
 # === SOZLAMALAR ===
 # Tokenni Render -> Environment bo'limiga BOT_TOKEN nomi bilan qo'ying
-BOT_TOKEN = os.environ["8957925087:AAEk58gvdqNIJTYLPuMYg3_TUW9BkBU7qO4"]
+BOT_TOKEN = os.environ "8957925087:AAEk58gvdqNIJTYLPuMYg3_TUW9BkBU7qO4"
 ADMIN_ID = int(os.environ.get("ADMIN_ID", "6119649341"))
 DB_PATH = os.environ.get("DB_PATH", "movies.db")
 # ==================
