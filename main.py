@@ -4,7 +4,10 @@ import os
 import sqlite3
 
 from aiogram import Bot, Dispatcher, F, types
-from aiogram.client.default import DefaultBotProperties
+try:
+    from aiogram.client.default import DefaultBotProperties
+except ImportError:
+    DefaultBotProperties = None
 from aiogram.enums import ChatMemberStatus, ParseMode
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -24,16 +27,24 @@ keep_alive()
 
 # === SOZLAMALAR ===
 # Tokenni Render -> Environment bo'limiga BOT_TOKEN nomi bilan qo'ying
-BOT_TOKEN = os.environ "8957925087:AAEk58gvdqNIJTYLPuMYg3_TUW9BkBU7qO4"
+BOT_TOKEN = os.environ.get("8957925087:AAEk58gvdqNIJTYLPuMYg3_TUW9BkBU7qO4","").strip()
+if not BOT_TOKEN:
+    raise SystemExite
+        "XATO: Render -> Environment bo'limida BOT_TOKEN nomli o'zgaruvchi yo'q"
+    )
 ADMIN_ID = int(os.environ.get("ADMIN_ID", "6119649341"))
 DB_PATH = os.environ.get("DB_PATH", "movies.db")
 # ==================
 
 # Hamma xabarlarda HTML ishlaydi (**...** va `...` endi ko'rinib qolmaydi)
-bot = Bot(
-    token=BOT_TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML),
-)
+try:
+    bot = Bot(
+        token=BOT_TOKEN,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    )
+except TypeError:
+    # eski aiogram versiyalari uchun
+    bot = Bot(token=BOT_TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher(storage=MemoryStorage())
 
 
